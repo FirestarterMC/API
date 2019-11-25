@@ -19,7 +19,7 @@ const router = express.Router()
 const Player = require('./models/player')
 
 app.use(bodyParser.json())
-app.use('/api', router)
+app.use('/', router)
 
 router.use((req, res, next) => {
     console.log(`🎺 Request from ${req.hostname}.`)
