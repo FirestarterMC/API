@@ -2,7 +2,6 @@ const dotenv = require('dotenv')
 dotenv.config()
 
 const express = require('express')
-const session = require('express-session')
 const app = express()
 const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
@@ -19,7 +18,6 @@ const router = express.Router()
 
 const Player = require('./models/player')
 
-app.use(session({secret: process.env.SECRET}))
 app.use(bodyParser.json())
 app.use('/api', router)
 
@@ -43,6 +41,14 @@ router.route('/player/:uuid').get((req, res) => {
     Player.find({'uuid': req.params.uuid}, (err, player) => {
         if (err) res.send(err)
         res.send(player)
+    })
+})
+
+router.route('/votes').get((req, res) => {
+    Player.find().sort({votes: -1}).limit(5).select("votes")
+        .select("uuid").exec((err, players) => {
+        if (err) res.send(err)
+        res.send(players)
     })
 })
 
