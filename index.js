@@ -3,21 +3,17 @@ dotenv.config()
 
 const express = require('express')
 const app = express()
+const cors = require('cors')
 const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
-/*const Sequelize = require('sequelize')
-const sequelize = new Sequelize(process.env.DB, process.env.DB_USERNAME,
-    process.env.DB_PASSWORD, {
-        host: process.env.DB_HOST,
-        dialect: 'mysql'
-    });
-*/
 
 const port = process.env.PORT || 8080
 const router = express.Router()
 
 const Player = require('./models/player')
+const Service = require('./models/service')
 
+app.use(cors())
 app.use(bodyParser.json())
 app.use('/', router)
 
@@ -27,7 +23,7 @@ router.use((req, res, next) => {
 })
 
 router.get('/', (req, res) => {
-    res.json({message: 'woo, an API!'})
+    res.json({message: '🎺 woo, online and operational!'})
 })
 
 router.route('/players').get((req, res) => {
@@ -49,6 +45,21 @@ router.route('/votes').get((req, res) => {
         .select("uuid").exec((err, players) => {
         if (err) res.send(err)
         res.send(players)
+    })
+})
+
+router.route('/playtime').get((req, res) => {
+    Player.find().sort({playtime: -1}).select("playtime")
+        .select("uuid").exec((err, players) => {
+        if (err) res.send(err)
+        res.send(players)
+    })
+})
+
+router.route('/status').get((req, res) => {
+    Service.find().select("-ip").exec((err, services) => {
+        if (err) res.send(err)
+        res.send(services)
     })
 })
 
