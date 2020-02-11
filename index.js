@@ -34,15 +34,14 @@ router.route('/players').get((req, res) => {
 })
 
 router.route('/player/:uuid').get((req, res) => {
-    Player.find({'uuid': req.params.uuid}, (err, player) => {
+    Player.find({'_id': req.params.uuid}, (err, player) => {
         if (err) res.send(err)
         res.send(player)
     })
 })
 
 router.route('/votes').get((req, res) => {
-    Player.find().sort({votes: -1}).limit(5).select("votes")
-        .select("uuid").exec((err, players) => {
+    Player.find().sort({votes: -1}).limit(5).exec((err, players) => {
         if (err) res.send(err)
         res.send(players)
     })

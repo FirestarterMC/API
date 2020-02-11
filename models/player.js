@@ -2,10 +2,9 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const PlayerSchema = new Schema({
-    uuid: String,
+    _id: String,
     joined: Number,
     playtime: Number,
-    deaths: Number,
     votes: Number,
 })
 
