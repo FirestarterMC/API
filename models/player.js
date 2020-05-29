@@ -6,7 +6,8 @@ module.exports = (sequelize, DataTypes) => {
         },
         joined: DataTypes.BIGINT,
         votes: DataTypes.INTEGER,
-        donor: DataTypes.BOOLEAN
+        donor: DataTypes.BOOLEAN,
+        discord: DataTypes.STRING
     }, {
         timestamps: false
     });
