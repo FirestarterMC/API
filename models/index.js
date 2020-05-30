@@ -9,6 +9,7 @@ const sequelize = new Sequelize('playerdata', process.env.DB_USERNAME, process.e
         min: 0,
         idle: 10000
     },
+    logging: false
 });
 
 module.exports = {

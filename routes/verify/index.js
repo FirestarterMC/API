@@ -11,68 +11,80 @@ router.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false
-}));
+}))
 
 // TODO detection if you are already linked
 
 router.get('/auth', (req, res) => {
-    let code = req.query.code, token = req.session.token;
+    let code = req.query.code, token = req.session.token
 
     if (code === undefined || token === undefined) {
-        res.status(400).json({message: 'Bad Request.'});
-        return;
+        return res.status(400).json({message: 'Bad Request.'})
     }
 
-    axios.post('https://discord.com/api/v6/oauth2/token', qs.stringify({
-        'client_id': '619754624257228800',
-        'client_secret': process.env.CLIENT_SECRET,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': 'https://api.firestartermc.com/verify/auth',
-        'scope': 'identify guilds guilds.join'
-    }), {
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-    }).then((response) => {
-        axios.get("https://discordapp.com/api/users/@me", {
-            headers: {"Authorization": `Bearer ${response.data.access_token}`}
-        }).then((response) => {
-            return response.data.id;
-        }).then((id) => {
-            client.hget("discord", token, (err, result) => {
-                if (result === null) {
-                    res.status(400).json({message: 'Bad Request.'});
-                    return;
-                }
+    let linkDiscord = async () => {
+      let accessToken = await axios.post('https://discord.com/api/v6/oauth2/token', qs.stringify({
+        client_id: '619754624257228800',
+        client_secret: process.env.CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: 'https://api.firestartermc.com/verify/auth',
+        scope: 'identify guilds.join'
+      }), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }).then(response => {
+        return response.data.access_token
+      })
 
-                Player.update({discord: id}, {
-                    where: {uuid: result}
-                }).then(() => {
-                    client.hdel("discord", token);
+      let discordId = await axios.get('https://discordapp.com/api/users/@me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }).then(response => {
+        return response.data.id
+      })
 
-                    axios.put(`https://discordapp.com/api/guilds/609452308161363995/members/${id}`, {
-                        'access_token': response.data.access_token
-                    }, {
-                        headers: {
-                            "Authorization": `Bot ${process.env.BOT_TOKEN}`,
-                            "Content-Type": "application/json"
-                        }
-                    }).then(response => {
-                        if (response.status === 204) {
-                            res.status(200).send("You're already in the server and your account is linked. " +
-                                "Contact a staff member if this is a mistake.");
-                        } else {
-                            res.status(200).send("You've been added to the Discord server and your account has been verified. " +
-                                "You can now close this window.");
-                        }
-                    });
-                }).catch((err) => {
-                    res.status(500).json({message: 'Internal Server Error.'});
-                    console.error(err);
-                });
-            })
-        });
-    }).catch(() => {
-        res.status(400).json({message: 'Bad Request.'});
+      let uuid = await client.hget('discord', token, (err, uuid) => {
+        if (uuid === null) {
+          throw 'Invalid token provided.'
+        } else {
+          return uuid
+        }
+      })
+
+      let status = await Player.update({discord: discordId}, {
+        where: {uuid: uuid}
+      }).then(() => {
+        req.session.destroy()
+        client.hdel('discord', token)
+      }).then(() => {
+        return axios.put(`https://discordapp.com/api/guilds/609452308161363995/members/${discordId}`, {
+          'access_token': accessToken
+        }, {
+          headers: {
+            'Authorization': `Bot ${process.env.BOT_TOKEN}`,
+            'Content-Type': 'application/json'
+          }
+        })
+      }).then(response => {
+        return response.status
+      })
+
+      return status
+    }
+
+    linkDiscord().then(response => {
+      if (response === 204) {
+        return res.status(200).send('Your Discord account has been linked. You may now close this window.')
+      } else {
+        return res.status(200).send('You\'ve been added to the Discord server and your account has been linked. ' +
+          'You may now close this window.')
+      }
+    }).catch(err => {
+      console.error(err);
+      return res.status(500).send('Failed to verify your Discord account.')
     })
 });
 

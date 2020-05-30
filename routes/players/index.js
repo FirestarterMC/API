@@ -3,9 +3,9 @@ const db = require('../../models');
 const Player = require('../../models/player.js')(db.sequelize, db.DataTypes);
 
 router.get('/', (req, res) => {
-   Player.findAll().then(results => {
-       res.json(results);
-   })
+    Player.findAll().then(results => {
+        res.json(results);
+    })
 });
 router.use('/votes', require('./votes'));
 router.get('/:uuid', (req, res) => {
