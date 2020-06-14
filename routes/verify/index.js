@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const session = require('express-session');
 const axios = require('axios');
 const qs = require('qs');
 const redis = require("redis");
@@ -7,16 +6,10 @@ const client = redis.createClient(process.env.REDIS);
 const db = require('../../models');
 const Player = require('../../models/player.js')(db.sequelize, db.DataTypes);
 
-router.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false
-}))
-
 // TODO detection if you are already linked
 
 router.get('/auth', (req, res) => {
-    let code = req.query.code, token = req.session.token
+    let code = req.query.code, token = req.query.state
 
     if (!code || !token) {
       return res.status(400).json({message: 'Bad Request.'})
@@ -63,7 +56,6 @@ router.get('/auth', (req, res) => {
           where: {uuid}
         })
         .then(() => {
-          req.session.destroy
           return client.hdel('discord', token)
         })
         .then(() => {
@@ -84,8 +76,7 @@ router.get('/auth', (req, res) => {
               'You may now close this window.')
           }
         })
-      })
-      .catch(err => {
+      }).catch(err => {
         console.error(err);
         res.status(500).send('Failed to verify your Discord account.')
       })
@@ -99,8 +90,7 @@ router.get('/:token', (req, res) => {
             if (!result) {
               res.status(400).json({message: "Bad Request."})
             } else {
-                req.session.token = req.params.token;
-                res.redirect(process.env.OAUTH_REDIRECT)
+                res.redirect(process.env.OAUTH_REDIRECT + `&state=${req.params.token}`)
             }
         }
     });
