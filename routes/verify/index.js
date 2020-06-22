@@ -6,6 +6,9 @@ const client = redis.createClient(process.env.REDIS);
 const db = require('../../models');
 const Player = require('../../models/player.js')(db.sequelize, db.DataTypes);
 
+const { promisify } = require("util");
+const mgetAsync = promisify(client.mget).bind(client);
+
 // TODO detection if you are already linked
 
 router.get('/auth', (req, res) => {
@@ -40,9 +43,8 @@ router.get('/auth', (req, res) => {
         return response.data.id
       })
 
-      let uuid = await client.hget('discord', token, (err, uuid) => {
-        if (!uuid || err) throw err ? err : 'Invalid token provided.'
-        else return uuid
+      let uuid = await mgetAsync(`discord:${token}`).then((uuid) => {
+        return uuid
       })
     
       return [accessToken, discordId, uuid]
@@ -52,11 +54,13 @@ router.get('/auth', (req, res) => {
       .then((data) => {
         let [accessToken, discordId, uuid] = data
 
+        console.log(`📐 New link request: ${data}`)
+
         Player.update({discord: discordId}, {
-          where: {uuid}
+          where: {uuid: uuid}
         })
         .then(() => {
-          return client.hdel('discord', token)
+          return client.del(`discord:${token}`)
         })
         .then(() => {
           return axios.put(`https://discordapp.com/api/guilds/609452308161363995/members/${discordId}`, {
@@ -83,7 +87,7 @@ router.get('/auth', (req, res) => {
 });
 
 router.get('/:token', (req, res) => {
-    client.hget("discord", req.params.token, (err, result) => {
+    client.mget(`discord:${req.params.token}`, (err, result) => {
         if (err) {
             res.status(500).json({message: 'Internal Server Error.'})
         } else {
