@@ -1,13 +1,14 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+require('dotenv').config()
+const express = require("express")
+const {graphqlHTTP} = require("express-graphql")
+const {schema} = require("./models/models")
 
-const app = express();
+const app = express()
+app.use("/graphql", graphqlHTTP({
+    schema: schema,
+    graphiql: true
+}))
 
-app.use(cors());
-app.use(require('./routes'));
+app.listen(8080)
 
-let port = process.env.PORT || 8080;
-app.listen(port, () => {
-    console.log(`⚡ Listening on port ${port}.`);
-});
+
