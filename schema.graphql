@@ -1,0 +1,30 @@
+type Query {
+    player(uuid: String!): Player
+    players(limit: Int, order: String): [Player!]!
+    playername(uuid: String!): String
+    votes: Int!
+}
+
+type Mutation {
+    createPlayer(uuid: String!): Player!
+    # TODO endpoint to retreieve and delete all known player data?
+    createDiscordLinkToken(uuid: String!): String!
+    authorizeDiscordAccount(token: String!): String!
+}
+
+type Player {
+    uuid: String!
+    joined: Float!
+    votes: Int!
+    rank: Rank
+    discord: String
+}
+
+type Vote {
+    player: Player!
+}
+
+type Rank {
+    name: String!
+    color: String!
+}
